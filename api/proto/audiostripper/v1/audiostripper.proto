@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "github.com/alesr/audiostripper/proto.v1";
+
+service AudioStripper {
+    rpc ExtractAudio(stream VideoData) returns (stream AudioData);
+}
+
+// Message to represent chunks of video data being sent to the server.
+message VideoData {
+    bytes data = 1;
+}
+
+// Message to represent chunks of audio data being sent back to the client.
+message AudioData {
+    bytes data = 1;
+}
