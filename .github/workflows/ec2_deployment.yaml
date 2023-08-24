@@ -34,6 +34,9 @@ jobs:
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
 
+        echo "Checking if ffmpeg is installed..."
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "which ffmpeg || sudo apt-get update && sudo apt-get install -y ffmpeg"
+
         echo "Ensuring directory exists..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir -p /opt/audiostripper && sudo chown $USER:$USER /opt/audiostripper"
         echo "Removing previous binary..."
