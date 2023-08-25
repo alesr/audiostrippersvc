@@ -18,12 +18,20 @@ jobs:
       with:
         go-version: 1.21
 
+    - name: Cache Go dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
     - name: Get commit hash
       id: get_commit_hash
       run: echo "::set-output name=hash::$(git rev-parse --short HEAD)"
 
     - name: Build Go binary with version
-      run: go build -ldflags "-X main.buildvcs=${{ steps.get_commit_hash.outputs.hash }}" -o audiostripper cmd/audiostripper/main.go
+      run: go build -ldflags "-X main.commitHash=${{ steps.get_commit_hash.outputs.hash }}" -o audiostripper cmd/audiostripper/main.go
 
     - name: Deploy and execute on EC2
       env:
@@ -35,13 +43,16 @@ jobs:
         chmod 600 private_key.pem
 
         echo "Checking if ffmpeg is installed..."
-        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "which ffmpeg || sudo apt-get update && sudo apt-get install -y ffmpeg"
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "which ffmpeg || (wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz && tar -xf ffmpeg-release-i686-static.tar.xz && sudo mv ffmpeg-*/ffmpeg /usr/local/bin/)"
 
         echo "Ensuring directory exists..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir -p /opt/audiostripper && sudo chown $USER:$USER /opt/audiostripper"
+        
         echo "Removing previous binary..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "rm -f /opt/audiostripper/audiostripper"
+        
         echo "Copying new binary..."
         scp -i private_key.pem -o StrictHostKeyChecking=no ./audiostripper $USER@$HOST:/opt/audiostripper/audiostripper
+        
         echo "Executing the binary inside a screen session..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "screen -S audiostripper -dm /opt/audiostripper/audiostripper"
