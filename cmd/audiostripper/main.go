@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"log/slog"
 	"net"
 	"os"
@@ -21,10 +20,12 @@ const (
 	keyPath  string = "/etc/ssl/mycerts/key.pem"
 )
 
+var version string
+
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: true,
-	}))
+	logger := makeLogger()
+
+	logger.Info("Running Audiostripper")
 
 	var useSSL bool
 	flag.BoolVar(&useSSL, "ssl", false, "Use SSL for the gRPC server")
@@ -35,7 +36,8 @@ func main() {
 	if useSSL {
 		creds, err := credentials.NewServerTLSFromFile(certPath, keyPath)
 		if err != nil {
-			log.Fatalf("Failed to load SSL certificates: %v", err)
+			logger.Error("Could not create credentials", slog.String("error", err.Error()))
+			os.Exit(1)
 		}
 		serverOpts = append(serverOpts, grpc.Creds(creds))
 	}
@@ -47,17 +49,17 @@ func main() {
 		api.NewGRPCServer(logger, audiostripper.NewService(logger)),
 	)
 
-	logger.Info("Starting gRPC server", "grpc_port", grpcPort)
+	logger.Info("Starting gRPC server")
 
 	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
-		logger.Error("Could not listen", "grpc_port", grpcPort, "error", err)
+		logger.Error("Could not listen", slog.String("error", err.Error()))
 		os.Exit(2)
 	}
 
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
-			logger.Error("Failed to serve gRPC server", "error", err)
+			logger.Error("Failed to serve gRPC server", slog.String("error", err.Error()))
 			os.Exit(3)
 		}
 	}()
@@ -70,4 +72,24 @@ func main() {
 
 	logger.Info("Shutting down gRPC server")
 	grpcServer.GracefulStop()
+}
+
+func makeLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+	}).WithAttrs(func() []slog.Attr {
+		var attributes = []slog.Attr{
+			{
+				Key:   "grpc_port",
+				Value: slog.StringValue(grpcPort),
+			},
+		}
+
+		if version == "" {
+			return attributes
+		}
+
+		attributes = append(attributes, slog.Attr{Key: "version", Value: slog.StringValue(version)})
+		return attributes
+	}()))
 }
