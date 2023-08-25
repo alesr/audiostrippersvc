@@ -42,17 +42,25 @@ jobs:
         echo "$PRIVATE_KEY" > private_key.pem
         chmod 600 private_key.pem
 
-        echo "Checking if ffmpeg is installed..."
-        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "which ffmpeg || (wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz && tar -xf ffmpeg-release-i686-static.tar.xz && sudo mv ffmpeg-*/ffmpeg /usr/local/bin/)"
-
         echo "Ensuring directory exists..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir -p /opt/audiostripper && sudo chown $USER:$USER /opt/audiostripper"
         
         echo "Removing previous binary..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "rm -f /opt/audiostripper/audiostripper"
-        
+
         echo "Copying new binary..."
         scp -i private_key.pem -o StrictHostKeyChecking=no ./audiostripper $USER@$HOST:/opt/audiostripper/audiostripper
-        
+
         echo "Executing the binary inside a screen session..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "screen -S audiostripper -dm /opt/audiostripper/audiostripper"
+
+  install-ffmpeg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup SSH and access EC2
+        run: echo "$PRIVATE_KEY" > private_key.pem
+
+      - name: Install FFmpeg
+        run: |
+          echo "Installing FFMPEG..."
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "which ffmpeg || (wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz && tar -xf ffmpeg-release-i686-static.tar.xz && sudo mv ffmpeg-*/ffmpeg /usr/local/bin/)"
