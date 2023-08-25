@@ -109,7 +109,10 @@ jobs:
   
         echo "Ensure directory exists"
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "sudo mkdir -p /opt/audiostripper && sudo chown $USER:$USER /opt/audiostripper"
-          
+
+        echo "Stop existing service"
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "screen -S audiostripper -X quit || echo 'No existing screen session to stop'"
+
         echo "Remove previous binary"
         ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "rm -f /opt/audiostripper/audiostripper"
   
