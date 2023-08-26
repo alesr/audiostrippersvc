@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 
 	"github.com/alesr/audiostripper/api"
@@ -20,7 +21,19 @@ const (
 	keyPath  string = "/etc/ssl/mycerts/key.pem"
 )
 
-var version string
+var (
+	version string
+
+	extractCmd audiostripper.ExtractCmd = func(params *audiostripper.ExtractCmdParams) error {
+		cmd := exec.Command(
+			"ffmpeg", "-y", "-i", params.InputFile, "-vn", "-acodec", "pcm_s16le", "-ar", params.SampleRate,
+			"-ac", "2", "-b:a", "32k", params.OutputFile,
+		)
+
+		cmd.Stderr = params.Stderr
+		return cmd.Run()
+	}
+)
 
 func main() {
 	logger := makeLogger()
@@ -46,7 +59,7 @@ func main() {
 
 	grpcServer.RegisterService(
 		&apiv1.AudioStripper_ServiceDesc,
-		api.NewGRPCServer(logger, audiostripper.NewService(logger)),
+		api.NewGRPCServer(logger, audiostripper.New(logger, extractCmd)),
 	)
 
 	logger.Info("Starting gRPC server")

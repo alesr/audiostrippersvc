@@ -1,24 +1,22 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"os"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"log/slog"
 
 	apiv1 "github.com/alesr/audiostripper/api/proto/audiostripper/v1"
 	"github.com/alesr/audiostripper/internal/app/audiostripper"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
-	MaxInMemorySize = 5 << 20 // 5MB memory threshold, adjusted as per feedback
-	chunkSize       = 2 << 20 // 2MB chunk for sending data back to client
+	MaxInMemorySize = 5 << 20 // 5MB memory threshold
+	chunkSize       = 5 << 20 // 5MB chunk for sending data back to client
 )
 
 type audioStripperService interface {
@@ -44,97 +42,75 @@ func (s *GRPCServer) Register(server *grpc.Server) {
 }
 
 func (s *GRPCServer) ExtractAudio(stream apiv1.AudioStripper_ExtractAudioServer) error {
-	var (
-		videoBuffer bytes.Buffer
-		tmpFile     *os.File
-		err         error
-	)
+	var sampleRate string
 
-	// Receiving video data from the client in chunks.
+	// Create a temp file for the incoming data
+	tempFile, err := os.CreateTemp("", "input-*")
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to create temp file: %v", err)
+	}
+
+	// Loop to receive streamed data and write to temp file
 	for {
-		videoData, err := stream.Recv()
+		chunk, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
-
 		if err != nil {
-			s.logger.Error("Error receiving video data:", err)
-			return status.Errorf(codes.Internal, "error receiving video data: %v", err)
+			return status.Errorf(codes.Unknown, "failed to receive data: %v", err)
 		}
 
-		// Check if accumulated data exceeds the 5MB threshold.
-		if videoBuffer.Len()+len(videoData.Data) > MaxInMemorySize {
-			// If buffer size exceeds, we save the data to a temporary file.
-			if tmpFile == nil {
-				tmpFile, err = os.CreateTemp("", "video-data-*.tmp")
-				if err != nil {
-					s.logger.Error("Error creating temporary file:", err)
-					return status.Errorf(codes.Internal, "error creating temporary file: %v", err)
-				}
-			}
-
-			// Write buffer content to the temporary file.
-			if _, err := tmpFile.Write(videoBuffer.Bytes()); err != nil {
-				s.logger.Error("Error writing to temporary file:", err)
-				return status.Errorf(codes.Internal, "error writing to temporary file: %v", err)
-			}
-
-			// Reset the buffer for next chunks of data.
-			videoBuffer.Reset()
+		// Capture sample rate from the first chunk
+		if sampleRate == "" {
+			sampleRate = chunk.SampleRate
 		}
 
-		// Accumulate video data in the buffer.
-		videoBuffer.Write(videoData.Data)
-	}
-
-	// Handle data after receiving all chunks.
-	var finalData []byte
-	if tmpFile != nil {
-		// If data was spilled to a temp file, read the file content.
-		tmpFile.Write(videoBuffer.Bytes()) // Write remaining buffer content to file.
-		videoBuffer.Reset()
-
-		// Read the complete data from the file.
-		finalData, err = os.ReadFile(tmpFile.Name())
-		if err != nil {
-			s.logger.Error("Error reading from temporary file", "error", err)
-			return status.Errorf(codes.Internal, "error reading from temporary file: %s", err)
+		if _, err = tempFile.Write(chunk.Data); err != nil {
+			return status.Errorf(codes.Internal, "failed to write to temp file: %v", err)
 		}
-
-		// Clean up the temporary file.
-		defer os.Remove(tmpFile.Name())
-		defer tmpFile.Close()
-	} else {
-		// If data was not spilled to file, just use buffer content.
-		finalData = videoBuffer.Bytes()
 	}
 
-	extractAudioInput := audiostripper.ExtractAudioInput{
-		Data: finalData,
+	if err := tempFile.Close(); err != nil {
+		return status.Errorf(codes.Internal, "failed to close temp file: %v", err)
 	}
 
-	extractAudioOutput, err := s.service.ExtractAudio(stream.Context(), &extractAudioInput)
+	// Call the service to extract audio
+	output, err := s.service.ExtractAudio(
+		stream.Context(),
+		&audiostripper.ExtractAudioInput{
+			SampleRate: sampleRate,
+			FilePath:   tempFile.Name(),
+		},
+	)
 	if err != nil {
-		s.logger.Error("Error extracting audio:", err)
-		return status.Errorf(codes.Internal, "error extracting audio: %s", err)
+		return status.Errorf(codes.Internal, "failed to extract audio: %v", err)
 	}
 
-	// Send extracted audio data back to the client in chunks.
-	for start := 0; start < len(extractAudioOutput.Data); start += chunkSize {
-		end := start + chunkSize
-		if end > len(extractAudioOutput.Data) {
-			end = len(extractAudioOutput.Data)
+	outputFile, err := os.Open(output.FilePath)
+	if err != nil {
+		return status.Errorf(codes.Internal, "failed to open output file: %v", err)
+	}
+	defer outputFile.Close()
+
+	buffer := make([]byte, chunkSize)
+
+	for {
+		bytesRead, err := outputFile.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return status.Errorf(codes.Internal, "failed to read from output file: %s", err)
 		}
 
-		resp := apiv1.AudioData{
-			Data: extractAudioOutput.Data[start:end],
-		}
-
-		if err := stream.Send(&resp); err != nil {
-			s.logger.Error("Error sending audio data:", err)
-			return status.Errorf(codes.Internal, "error sending audio data: %v", err)
+		// Send the chunk to the client
+		if err := stream.Send(&apiv1.AudioData{Data: buffer[:bytesRead]}); err != nil {
+			return status.Errorf(codes.Internal, "failed to send chunk to client: %s", err)
 		}
 	}
 
+	if err := os.Remove(output.FilePath); err != nil {
+		s.logger.Error("Failed to remove temp output file", slog.String("file", output.FilePath), slog.String("error", err.Error()))
+	}
 	return nil
 }
