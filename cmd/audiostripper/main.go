@@ -23,6 +23,7 @@ const (
 
 var (
 	version string
+	useSSL  bool
 
 	extractCmd audiostripper.ExtractCmd = func(params *audiostripper.ExtractCmdParams) error {
 		cmd := exec.Command(
@@ -36,13 +37,11 @@ var (
 )
 
 func main() {
-	logger := makeLogger()
-
-	logger.Info("Running Audiostripper")
-
-	var useSSL bool
 	flag.BoolVar(&useSSL, "ssl", false, "Use SSL for the gRPC server")
 	flag.Parse()
+
+	logger := makeLogger()
+	logger.Info("Running Audiostripper")
 
 	var serverOpts []grpc.ServerOption
 
@@ -95,6 +94,10 @@ func makeLogger() *slog.Logger {
 			{
 				Key:   "grpc_port",
 				Value: slog.StringValue(grpcPort),
+			},
+			{
+				Key:   "ssl",
+				Value: slog.BoolValue(useSSL),
 			},
 		}
 
