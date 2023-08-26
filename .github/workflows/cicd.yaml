@@ -120,4 +120,4 @@ jobs:
         scp -i private_key.pem -o StrictHostKeyChecking=no ./audiostripper $USER@$HOST:/opt/audiostripper/audiostripper
   
         echo "Execute the binary inside screen session"
-        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "screen -S audiostripper -dm /opt/audiostripper/audiostripper"
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $USER@$HOST "screen -S audiostripper -dm /opt/audiostripper/audiostripper -ssl=true"
