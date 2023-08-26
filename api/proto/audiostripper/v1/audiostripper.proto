@@ -8,7 +8,8 @@ service AudioStripper {
 
 // Message to represent chunks of video data being sent to the server.
 message VideoData {
-    bytes data = 1;
+    string sample_rate = 1;
+    bytes data = 2;
 }
 
 // Message to represent chunks of audio data being sent back to the client.
