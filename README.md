@@ -43,13 +43,14 @@ AudioStripper exposes a gRPC Bi-directional stream API and uses [FFMPEG](https:/
 ## Usage Example
 
 ```go
-
 func main() {
 	secure := flag.Bool("secure", false, "Use secure connection")
 	flag.Parse()
 
-	var conn *grpc.ClientConn
-	var err error
+	var (
+		conn *grpc.ClientConn
+		err error
+	)
 
 	if *secure {
 		creds, err := credentials.NewClientTLSFromFile(certPath, "")
@@ -79,7 +80,7 @@ func main() {
 
 	// Open & read data from test video
 
-	f, err := os.Open(videoFilepath)
+	f, err := os.Open("test_video.mp4")
 	if err != nil {
 		log.Fatalf("Failed to open test video: %v", err)
 	}
@@ -90,6 +91,12 @@ func main() {
 	}
 	defer f.Close()
 
+	// Split data in 2MB chunks
+	chunkedData, err := bytesplitter.Split(data, bytesplitter.MB(2))
+	if err != nil {
+		log.Fatalf("Failed to split data: %v", err)
+	}
+
 	// Initialize stream and send data
 
 	stream, err := client.ExtractAudio(context.TODO())
@@ -97,9 +104,9 @@ func main() {
 		log.Fatalf("Error while calling ExtractAudio: %v", err)
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < len(chunkedData); i++ {
 		if err := stream.Send(&pb.VideoData{
-			Data:       data,
+			Data:       chunkedData[i],
 			SampleRate: "44100", // The server consumes the sample request only once.
 		}); err != nil {
 			log.Fatalf("Failed to send data: %v", err)
