@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"os/signal"
 
+	"github.com/alesr/audiostripper"
 	"github.com/alesr/audiostrippersvc/api"
 	apiv1 "github.com/alesr/audiostrippersvc/api/proto/audiostrippersvc/v1"
-	"github.com/alesr/audiostrippersvc/internal/app/audiostripper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -58,7 +58,7 @@ func main() {
 
 	grpcServer.RegisterService(
 		&apiv1.AudioStripper_ServiceDesc,
-		api.NewGRPCServer(logger, audiostripper.New(logger, extractCmd)),
+		api.NewGRPCServer(logger, audiostripper.New(extractCmd)),
 	)
 
 	logger.Info("Starting gRPC server")

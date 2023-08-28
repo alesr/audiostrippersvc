@@ -3,15 +3,15 @@ package api
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/alesr/audiostripper"
 	apiv1 "github.com/alesr/audiostrippersvc/api/proto/audiostrippersvc/v1"
-	"github.com/alesr/audiostrippersvc/internal/app/audiostripper"
-	"github.com/alesr/audiostrippersvc/pkg/slognoop"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
@@ -109,7 +109,7 @@ func makeGRPCServerHelper(t *testing.T, service *mockAudioStripperService) (*grp
 
 	s := grpc.NewServer()
 
-	apiv1.RegisterAudioStripperServer(s, NewGRPCServer(slognoop.NoopLogger(), service))
+	apiv1.RegisterAudioStripperServer(s, NewGRPCServer(noopLogger(), service))
 
 	serverErrCh := make(chan error, 1)
 	serverStartedCh := make(chan struct{}, 1)
@@ -150,4 +150,9 @@ func makeGRPCClientHelper(t *testing.T, lis *bufconn.Listener) apiv1.AudioStripp
 	client := apiv1.NewAudioStripperClient(conn)
 
 	return client
+}
+
+// noopLogger returns a logger that discards all messages.
+func noopLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
