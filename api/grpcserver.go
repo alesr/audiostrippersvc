@@ -7,8 +7,8 @@ import (
 
 	"log/slog"
 
-	apiv1 "github.com/alesr/audiostripper/api/proto/audiostripper/v1"
-	"github.com/alesr/audiostripper/internal/app/audiostripper"
+	apiv1 "github.com/alesr/audiostrippersvc/api/proto/audiostrippersvc/v1"
+	"github.com/alesr/audiostrippersvc/internal/app/audiostripper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

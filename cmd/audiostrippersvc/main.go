@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"os/signal"
 
-	"github.com/alesr/audiostripper/api"
-	apiv1 "github.com/alesr/audiostripper/api/proto/audiostripper/v1"
-	"github.com/alesr/audiostripper/internal/app/audiostripper"
+	"github.com/alesr/audiostrippersvc/api"
+	apiv1 "github.com/alesr/audiostrippersvc/api/proto/audiostrippersvc/v1"
+	"github.com/alesr/audiostrippersvc/internal/app/audiostripper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/alesr/audiostripper/proto.v1";
+option go_package = "github.com/alesr/audiostrippersvc/proto.v1";
 
 service AudioStripper {
     rpc ExtractAudio(stream VideoData) returns (stream AudioData);

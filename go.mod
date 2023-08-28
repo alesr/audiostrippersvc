@@ -1,4 +1,4 @@
-module github.com/alesr/audiostripper
+module github.com/alesr/audiostrippersvc
 
 go 1.21.0
 

@@ -1,17 +1,16 @@
-# audiostripper
+# audiostrippersvc
 
 A Go gRPC application for extracting audio from videos using FFMPEG
 
 ## Overview
 
-AudioStripper exposes a gRPC Bi-directional stream API and uses [FFMPEG](https://ffmpeg.org/) for extracting audio from videos.
+AudioStrippersvc exposes a gRPC Bi-directional stream API and uses [FFMPEG](https://ffmpeg.org/) for extracting audio from videos.
 
 ## Architecture
 
 ### Core Components
 
 ```bash
-.
 ├── LICENSE
 ├── README.md
 ├── Taskfile.yaml
@@ -19,14 +18,14 @@ AudioStripper exposes a gRPC Bi-directional stream API and uses [FFMPEG](https:/
 │   ├── grpcserver.go # Implement gRPC bi-directional stream API fro extracting audio from videos
 │   ├── grpcserver_test.go
 │   └── proto
-│       └── audiostripper
+│       └── audiostrippersvc
 │           └── v1
-│               ├── audiostripper.pb.go
-│               ├── audiostripper.proto # API spec
-│               └── audiostripper_grpc.pb.go
+│               ├── audiostrippersvc.pb.go
+│               ├── audiostrippersvc.proto  # API spec
+│               └── audiostrippersvc_grpc.pb.go
 ├── cmd
-│   └── audiostripper
-│       └── main.go # Application entrypoint. Starts the server on port :50051
+│   └── audiostrippersvc
+│       └── main.go
 ├── go.mod
 ├── go.sum
 ├── internal
@@ -37,7 +36,6 @@ AudioStripper exposes a gRPC Bi-directional stream API and uses [FFMPEG](https:/
 └── pkg
     └── slognoop
         └── slognoop.go
-
 ```
 
 ## Usage Example

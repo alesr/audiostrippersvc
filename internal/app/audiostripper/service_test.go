@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alesr/audiostripper/pkg/slognoop"
+	"github.com/alesr/audiostrippersvc/pkg/slognoop"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

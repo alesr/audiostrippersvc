@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	apiv1 "github.com/alesr/audiostripper/api/proto/audiostripper/v1"
-	"github.com/alesr/audiostripper/internal/app/audiostripper"
-	"github.com/alesr/audiostripper/pkg/slognoop"
+	apiv1 "github.com/alesr/audiostrippersvc/api/proto/audiostrippersvc/v1"
+	"github.com/alesr/audiostrippersvc/internal/app/audiostripper"
+	"github.com/alesr/audiostrippersvc/pkg/slognoop"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"

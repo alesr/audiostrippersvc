@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.12
-// source: api/proto/audiostripper/v1/audiostripper.proto
+// source: api/proto/audiostrippersvc/v1/audiostrippersvc.proto
 
 package proto_v1
 
@@ -133,5 +133,5 @@ var AudioStripper_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "api/proto/audiostripper/v1/audiostripper.proto",
+	Metadata: "api/proto/audiostrippersvc/v1/audiostrippersvc.proto",
 }
